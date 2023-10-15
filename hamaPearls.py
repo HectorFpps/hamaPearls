@@ -35,10 +35,13 @@ def main(image_path, hex_palette):
     new_img = Image.fromarray(new_img_array, 'RGB')
     new_img.save("blueprint_image.jpg")
 
-    plt.imshow(img)
+    plt.imshow(new_img)
     plt.axis('off')
     plt.title('Hama Pearls Blueprint')
     plt.show()
+
+    print("Color count:")
+    print(color_count)
 
 if __name__ == "__main__":
     hex_palette = ['#feeeca', '#feea48', '#ffe604', '#ffcd00', '#ffb504', '#ff6201',
