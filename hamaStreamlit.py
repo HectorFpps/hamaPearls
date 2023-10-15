@@ -33,23 +33,23 @@ def closest_color(pixel_color, palette, weights):
     closest = palette[np.argmin(weighted_distances)]
     return closest
 
-def process_image(image_path, hex_palette, weights, side=30, progress_bar=None):
+def process_image(image_path, hex_palette, weights, side=100, progress_bar=None):
     size = (side, side)
     rgb_palette = np.array([hex_to_rgb(c) for c in hex_palette])
 
     img = cv2.imread(image_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, size)
+    resized_img = cv2.resize(img, size)  # Keep the resized original image
 
-    new_img_array = np.zeros(img.shape, dtype=np.uint8)
+    new_img_array = np.zeros(resized_img.shape, dtype=np.uint8)
     color_counter = Counter()
 
     total_pixels = img.shape[0] * img.shape[1]
     processed_pixels = 0
 
-    for i in range(img.shape[0]):
-        for j in range(img.shape[1]):
-            closest = closest_color(img[i, j], rgb_palette, weights)
+    for i in range(resized_img.shape[0]):
+        for j in range(resized_img.shape[1]):
+            closest = closest_color(resized_img[i, j], rgb_palette, weights)
             new_img_array[i, j] = closest
             color_counter[tuple(closest)] += 1
             processed_pixels += 1
@@ -57,7 +57,8 @@ def process_image(image_path, hex_palette, weights, side=30, progress_bar=None):
             if progress_bar is not None:
                 progress_bar.progress(processed_pixels / total_pixels)
 
-    return new_img_array, color_counter
+    return resized_img, new_img_array, color_counter
+
 
 # Streamlit app
 st.title('Hama Pearls Blueprint Generator')
@@ -79,7 +80,7 @@ weights = []
 
 progress_bar = st.progress(0)
 
-new_img_array, color_counter = process_image(image_path, hex_palette, np.array(initial_weights), side=30, progress_bar=progress_bar)
+new_img_array, _,color_counter = process_image(image_path, hex_palette, np.array(initial_weights), side=30, progress_bar=progress_bar)
 total_pixels = new_img_array.shape[0] * new_img_array.shape[1]
 
 for i, color in enumerate(hex_palette):
@@ -89,14 +90,25 @@ for i, color in enumerate(hex_palette):
     weight = st.slider(f'Adjust Weight for Color {color} - {percentage:.2f}%', min_value=-1.0, max_value=1.0, value=initial_weights[i], step=0.1, format="%.1f", key=i)
     weights.append(weight)
 
-side = st.slider('Adjust Size of Blueprint', min_value=10, max_value=1000, value=30, step=10, format="%d")
+side = st.slider('Adjust Size of Blueprint', min_value=10, max_value=1000, value=100, step=10, format="%d")
 
 progress_bar = st.progress(0)
 
 if not needs_verification:
-    new_img_array, _ = process_image(image_path, hex_palette, np.array(weights), side=side, progress_bar=progress_bar)
-    plt.imshow(new_img_array)
-    st.image(new_img_array.astype('uint8'), channels="RGB", caption="Generated Hama Pearls Blueprint")
+    original_img_resized, new_img_array, _ = process_image(image_path, hex_palette, np.array(weights), side=side, progress_bar=progress_bar)
+    
+    # Displaying both images
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    axes[0].imshow(original_img_resized)
+    axes[0].set_title("Original Image")
+    axes[0].axis('off')
+    
+    axes[1].imshow(new_img_array)
+    axes[1].set_title("Generated Hama Pearls Blueprint")
+    axes[1].axis('off')
+    
+    plt.tight_layout()
+    st.pyplot(fig)
 
     #st.markdown(
     #"""
